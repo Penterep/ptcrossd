@@ -109,11 +109,10 @@ class PtCrossd:
             self.ptjsonlib.end_error("Invalid URL provided", self.use_json)
 
         if not o.path.endswith("/crossdomain.xml"):
-            pass
-        elif not o.path or o.path == "/":
-            o = o._replace(path="/crossdomain.xml")
-        else:
-            o = o._replace(path='/'.join([i for i in o.path.split("/") if i]) + "/crossdomain.xml")
+            if o.path in ["/", ""]:
+                o = o._replace(path="/crossdomain.xml")
+            else:
+                o = o._replace(path='/'.join([i for i in o.path.split("/") if i]) + "/crossdomain.xml")
 
         return (o.path, urllib.parse.urlunparse((o.scheme, o.netloc, o.path, "", "", "")))
 
