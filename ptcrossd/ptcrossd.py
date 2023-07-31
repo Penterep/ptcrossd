@@ -163,7 +163,6 @@ def main():
     global SCRIPTNAME
     SCRIPTNAME = "ptcrossd"
     requests.packages.urllib3.disable_warnings()
-    requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ':HIGH:!DH:!aNULL'
     args = parse_args()
     script = PtCrossd(args)
     script.run(args)
