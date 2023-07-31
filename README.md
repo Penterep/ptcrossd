@@ -2,7 +2,6 @@
 
 
 # PTCROSSD
-![PyPI - License](https://img.shields.io/pypi/l/ptsecurixt?style=for-the-badge)
 
 > crossdomain.xml misconfigurations testing tool
 
@@ -29,8 +28,8 @@ source ~/.zshhrc
 
 ## Usage examples
 ```
-$ ptcrossd.py -u https://www.example.com/crossdomain.xml
-$ ptcrossd.py -u https://www.example.com/
+ptcrossd -u https://www.example.com/crossdomain.xml
+ptcrossd -u https://www.example.com/
 ```
 
 ## Options
@@ -58,7 +57,10 @@ ptlibs
 ## Version History
 ```
 1.0.0
-    - Release ready
+    - updated for ptlibs 1.0.0
+    - code refactorization
+0.0.1 - 0.0.2
+    - Alpha releases
 ```
 ## License
 
