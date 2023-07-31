@@ -19,7 +19,6 @@
 """
 
 import argparse
-import os
 import re
 import sys; sys.path.append(__file__.rsplit("/", 1)[0])
 import urllib
@@ -48,14 +47,14 @@ class PtCrossd:
         except requests.RequestException:
             self.ptjsonlib.end_error(f"Cannot connect to server", self.use_json)
 
-        if response.headers.get("Access-Control-Allow-Origin"):
-            ptprinthelper.ptprint(f"Response Header: Access-Control-Allow-Origin: {response.headers.get('Access-Control-Allow-Origin')}", "INFO", not self.use_json)
-            if response.headers.get("Access-Control-Allow-Origin") == "*":
-                self.ptjsonlib.add_vulnerability("PTWV-OPEN-CORS-HEADER", request=response_dump["request"], response=response_dump["response"])
-
         if response.status_code == 200:
+            if response.headers.get("Access-Control-Allow-Origin"):
+                ptprinthelper.ptprint(f"Response Header: Access-Control-Allow-Origin: {response.headers.get('Access-Control-Allow-Origin')}", "INFO", not self.use_json)
+                if response.headers.get("Access-Control-Allow-Origin") == "*":
+                    self.ptjsonlib.add_vulnerability("PTWV-OPEN-CORS-HEADER", request=response_dump["request"], response=response_dump["response"])
+
             if response.headers.get("Content-Type") in ["application/xml", "text/plain"]:
-                self.ptjsonlib.add_node(self.ptjsonlib.create_node_object("webpage", properties={"url": url, "name": rel_path, "WebPageType": "crossdomain_xml"}))
+                self.ptjsonlib.add_node(self.ptjsonlib.create_node_object("webpage", properties={"url": url, "name": rel_path[1:] if rel_path.startswith("/") else rel_path, "WebPageType": "crossdomain_xml"}))
                 self._process_crossdomain_xml(response, response_dump)
             else:
                 self.ptjsonlib.end_error(f"Expected Content-Type is application/xml, got {response.headers.get('Content-Type')}", self.use_json)
@@ -71,17 +70,17 @@ class PtCrossd:
         except DEFUSED_ET.ParseError:
             self.ptjsonlib.end_error("Error parsing provided XML file", self.use_json)
         except DEFUSED_ET.EntitiesForbidden:
-            self.ptjsonlib.end_error("[Malicious] Forbidden entities found, program will exit", self.use_json)
+            self.ptjsonlib.end_error("Forbidden entities found, program will exit", self.use_json)
 
         if not self.use_json:
             import xml.etree.ElementTree as ET
+            element = ET.XML(response.text); ET.indent(element)
             ptprinthelper.ptprint("XML content:", "TITLE", not self.use_json)
-            element = ET.XML(response.text)
-            ET.indent(element)
             ptprinthelper.ptprint(ptprinthelper.get_colored_text(ET.tostring(element, encoding='unicode'), "INFO"), newline_above=True)
+
         self._allow_access_from_test(tree, response_dump)
 
-    def _allow_access_from_test(self, tree, response_dump) -> bool:
+    def _allow_access_from_test(self, tree, response_dump) -> None:
         has_open_cors = False
         has_non_secure_communication = False
         acf_elements = tree.findall("allow-access-from")
@@ -101,20 +100,19 @@ class PtCrossd:
             self.ptjsonlib.end_error("No allow-access-from elements were found", self.use_json)
 
 
-    def _adjust_url(self, url: str) -> str:
-        o = urllib.parse.urlparse(url)
-        if not re.match("https?$", o.scheme):
+    def _adjust_url(self, url: str) -> tuple[str, str]:
+        parsed_url = urllib.parse.urlparse(url)
+        if not re.match("https?$", parsed_url.scheme):
             self.ptjsonlib.end_error("Missing or wrong scheme - only HTTP/HTTPS schemas are supported", self.use_json)
-        if not o.netloc:
+        if not parsed_url.netloc:
             self.ptjsonlib.end_error("Invalid URL provided", self.use_json)
 
-        if not o.path.endswith("/crossdomain.xml"):
-            if o.path in ["/", ""]:
-                o = o._replace(path="/crossdomain.xml")
+        if not parsed_url.path.endswith("/crossdomain.xml"):
+            if parsed_url.path in ["/", ""]:
+                parsed_url = parsed_url._replace(path="/crossdomain.xml")
             else:
-                o = o._replace(path='/'.join([i for i in o.path.split("/") if i]) + "/crossdomain.xml")
-
-        return (o.path, urllib.parse.urlunparse((o.scheme, o.netloc, o.path, "", "", "")))
+                parsed_url = parsed_url._replace(path='/'.join([i for i in parsed_url.path.split("/") if i]) + "/crossdomain.xml")
+        return (parsed_url.path, urllib.parse.urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", "", "")))
 
 
 def get_help():
