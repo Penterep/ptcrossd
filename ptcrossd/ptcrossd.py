@@ -128,7 +128,7 @@ class PtCrossd:
                     http_allowed = True
             if is_open_cors:
                 ptprinthelper.ptprint("Open CORS vulnerability detected in crossdomain.xml file", "VULN", not self.use_json)
-                self.ptjsonlib.add_vulnerability("PTWV-OPEN-CORS", request=response_dump["request"], response=response_dump["response"])
+                self.ptjsonlib.add_vulnerability("PTWV-OPEN-CORS-FILE", request=response_dump["request"], response=response_dump["response"])
             if http_allowed:
                 ptprinthelper.ptprint("Non-secure communication detected in crossdomain.xml file", "VULN", not self.use_json)
 
