@@ -46,7 +46,7 @@ class PtCrossd:
         if self.use_json:
             if self.file_test:
                 url_path, url = self._adjust_url(args.url)
-                self._test_crossdomain_xml(url, url_path)
+                self._test_url(url, url_path)
             if self.header_test:
                 self._test_headers_only(args.url)
             self.ptjsonlib.set_status("ok")
@@ -57,7 +57,7 @@ class PtCrossd:
                 urls = self._get_paths_for_crossdomain(args.url)
                 for index, url in enumerate(urls):
                     if index != 0: ptprinthelper.ptprint(" ", "", not self.use_json)
-                    self._test_crossdomain_xml(url)
+                    self._test_url(url)
             if not self.file_test and self.header_test:
                 self._test_headers_only(args.url)
 
@@ -69,12 +69,13 @@ class PtCrossd:
                 ptprinthelper.ptprint("Open CORS vulnerability detected in Access-Control-Allow-Origin header", "VULN", not self.use_json)
                 self.ptjsonlib.add_vulnerability("PTWV-OPEN-CORS-HEADER", request=response_dump["request"], response=response_dump["response"])
         else:
-            ptprinthelper.ptprint("Access-Control-Allow-Origin not found", "ERROR", not self.use_json)
+            ptprinthelper.ptprint(f'Header Access-Control-Allow-Origin is not present', "INFO", not self.use_json)
 
-    def _test_crossdomain_xml(self, url, url_path=None) -> None:
+    def _test_url(self, url, url_path=None) -> None:
         ptprinthelper.ptprint(f"Testing: {url}", "TITLE", not self.use_json, colortext=True)
         response, response_dump = self._get_response(url)
 
+        ptprinthelper.ptprint(f"Returned Content-Type: '{response.headers.get('Content-Type')}'", "INFO", not self.use_json)
         if self.header_test and not self.use_json:
             if response.headers.get("Access-Control-Allow-Origin"):
                 ptprinthelper.ptprint(f'Access-Control-Allow-Origin: {response.headers.get("Access-Control-Allow-Origin")}', "INFO", not self.use_json)
@@ -113,8 +114,6 @@ class PtCrossd:
             ptprinthelper.ptprint(ptprinthelper.get_colored_text(xml_string, "INFO"), condition=not self.use_json, newline_above=True)
 
         ptprinthelper.ptprint(" ", "", not self.use_json)
-        if response.headers.get("Content-Type") not in ["application/xml"]:
-            ptprinthelper.ptprint(f"Unexpected Content-Type, got '{response.headers.get('Content-Type')}'", "WARNING", not self.use_json)
         self._run_allow_access_from_test(tree, response, response_dump)
 
     def _run_allow_access_from_test(self, tree, response, response_dump) -> None:
@@ -132,8 +131,6 @@ class PtCrossd:
                 self.ptjsonlib.add_vulnerability("PTWV-OPEN-CORS", request=response_dump["request"], response=response_dump["response"])
             if http_allowed:
                 ptprinthelper.ptprint("Non-secure communication detected in crossdomain.xml file", "VULN", not self.use_json)
-        else:
-            ptprinthelper.ptprint("No allow-access-from elements were found", "ERROR", not self.use_json)
 
         if not is_open_cors:
             self.ptjsonlib.set_message(response.text)
@@ -167,7 +164,7 @@ class PtCrossd:
     def _validate_url(self, url: str) -> None:
         parsed_url = urllib.parse.urlparse(url)
         if not re.match("https?$", parsed_url.scheme):
-            self.ptjsonlib.end_error("Missing or wrong scheme - only HTTP/HTTPS schemas are supported", self.use_json)
+            self.ptjsonlib.end_error("Missing or wrong scheme, only HTTP(s) schemas are supported", self.use_json)
         if not parsed_url.netloc:
             self.ptjsonlib.end_error("Provided URL is not valid", self.use_json)
 
@@ -193,10 +190,13 @@ def get_help():
         {"usage": ["ptcrossd <options>"]},
         {"usage_example": [
             "ptcrossd -u https://www.example.com/crossdomain.xml",
-            "ptcrossd -u https://www.example.com/"
+            "ptcrossd -u https://www.example.com/",
+
         ]},
         {"options": [
             ["-u",  "--url",                    "<url>",            "Connect to URL"],
+            ["-cf",  "--cross-domain-file",     "",                 "Test crossdomain.xml file"],
+            ["-ch", "--cross-origin-header",    "",                 "Test Access-Control-Allow-Origin header"],
             ["-p",  "--proxy",                  "<proxy>",          "Set proxy (e.g. http://127.0.0.1:8080)"],
             ["-T",  "--timeout",                "<timeout>",        "Set timeout (default to 10)"],
             ["-c",  "--cookie",                 "<cookie>",         "Set cookie"],
@@ -206,8 +206,6 @@ def get_help():
             ["-v",  "--version",                "",                 "Show script version and exit"],
             ["-h",  "--help",                   "",                 "Show this help message and exit"],
             ["-j",  "--json",                   "",                 "Output in JSON format"],
-            ["-cf",  "--cross-domain-file",     "",                 "Test crossdomain.xml file"],
-            ["-ch", "--cross-origin-header",    "",                 "Test Access-Control-Allow-Origin header"],
         ]
         }]
 
