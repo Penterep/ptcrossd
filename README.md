@@ -56,6 +56,8 @@ ptlibs
 
 ## Version History
 ```
+1.0.2
+    - Full script rework
 1.0.1
     - Fix urllib3 error
 1.0.0
