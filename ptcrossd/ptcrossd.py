@@ -42,7 +42,7 @@ class PtCrossd:
         self._validate_url(args.url)
         self._set_tests(args)
 
-    def run(self, args):
+    def run(self, args) -> None:
         if self.use_json:
             if self.file_test:
                 url_path, url = self._adjust_url(args.url)
@@ -61,7 +61,7 @@ class PtCrossd:
             if not self.file_test and self.header_test:
                 self._test_headers_only(args.url)
 
-    def _test_headers_only(self, url):
+    def _test_headers_only(self, url) -> None:
         ptprinthelper.ptprint(f"Testing: {url}", "TITLE", not self.use_json, colortext=True)
         response, response_dump = self._get_response(url)
         if response.headers.get("Access-Control-Allow-Origin"):
@@ -71,7 +71,7 @@ class PtCrossd:
         else:
             ptprinthelper.ptprint("Access-Control-Allow-Origin not found", "ERROR", not self.use_json)
 
-    def _test_crossdomain_xml(self, url, url_path=None):
+    def _test_crossdomain_xml(self, url, url_path=None) -> None:
         ptprinthelper.ptprint(f"Testing: {url}", "TITLE", not self.use_json, colortext=True)
         response, response_dump = self._get_response(url)
 
